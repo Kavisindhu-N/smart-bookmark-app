@@ -127,3 +127,12 @@ Open [http://localhost:3000](http://localhost:3000).
 ### 4. URL validation
 **Problem:** Users entered URLs without `https://`, causing broken links.  
 **Solution:** Auto-prefixed URLs with `https://` if no protocol was provided.
+
+### 5. Same-tab real-time sync delay
+**Problem:** Newly added bookmarks didn't appear instantly in the same tab, or required manual state management which became complex.  
+**Solution:** Implemented a centralized `BookmarkManager` that uses a single Supabase Realtime subscription for the entire app. Refactored the architecture to be 100% driven by Supabase broadcasts, ensuring consistency across all tabs and devices.
+
+### 6. Redundant Supabase client creation
+**Problem:** The Supabase client was being re-created on every render in components like the Navbar, causing potential memory leaks and extra connection overhead.  
+**Solution:** Wrapped the client creation in `useMemo` to ensure a single instance is shared throughout the component lifecycle.
+
