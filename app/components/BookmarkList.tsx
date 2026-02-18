@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 
 interface Bookmark {
     id: string;
@@ -16,55 +16,70 @@ interface BookmarkListProps {
 }
 
 export default function BookmarkList({ userId }: BookmarkListProps) {
-    // useMemo ensures the same client instance across renders
     const supabase = useMemo(() => createClient(), []);
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [loading, setLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-    // Fetch initial bookmarks
     useEffect(() => {
-        const fetchBookmarks = async () => {
+        let isMounted = true;
+
+        const setup = async () => {
+            // 1. Wait for auth session to be ready — this ensures the
+            //    realtime WebSocket is authenticated so RLS works for INSERT events
+            const { data: { session } } = await supabase.auth.getSession();
+            console.log("Auth session ready:", !!session);
+
+            // 2. Explicitly set auth token on the realtime WebSocket connection.
+            //    Without this, other tabs may connect without auth, and RLS
+            //    will block INSERT event broadcasts to those tabs.
+            if (session?.access_token) {
+                supabase.realtime.setAuth(session.access_token);
+            }
+
+            if (!isMounted) return;
+
+            // 2. Fetch initial bookmarks
             const { data, error } = await supabase
                 .from("bookmarks")
                 .select("*")
                 .eq("user_id", userId)
                 .order("created_at", { ascending: false });
 
-            if (!error && data) {
+            if (!error && data && isMounted) {
                 setBookmarks(data);
             }
-            setLoading(false);
-        };
+            if (isMounted) setLoading(false);
 
-        fetchBookmarks();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId]);
-
-    // Real-time subscription
-    useEffect(() => {
-        const channel = supabase
-            .channel(`bookmarks-${userId}`) // unique channel name per user
-            .on(
-                "postgres_changes",
-                {
-                    event: "*", // listen to ALL events (INSERT, UPDATE, DELETE)
-                    schema: "public",
-                    table: "bookmarks",
-                    // NOTE: No server-side filter here — Supabase realtime filters
-                    // don't reliably work with INSERT events + RLS. We filter client-side instead.
-                },
-                (payload) => {
-                    if (payload.eventType === "INSERT") {
+            // 3. Subscribe to realtime AFTER auth is confirmed
+            const channel = supabase
+                .channel(`bookmarks-${userId}-${Date.now()}`) // unique channel name
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "INSERT",
+                        schema: "public",
+                        table: "bookmarks",
+                    },
+                    (payload) => {
                         const newBookmark = payload.new as Bookmark;
-                        // Client-side filter: only process bookmarks for this user
                         if (newBookmark.user_id !== userId) return;
                         console.log("Realtime INSERT received:", newBookmark);
                         setBookmarks((prev) => {
                             if (prev.some((b) => b.id === newBookmark.id)) return prev;
                             return [newBookmark, ...prev];
                         });
-                    } else if (payload.eventType === "UPDATE") {
+                    }
+                )
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "UPDATE",
+                        schema: "public",
+                        table: "bookmarks",
+                    },
+                    (payload) => {
                         const updatedBookmark = payload.new as Bookmark;
                         if (updatedBookmark.user_id !== userId) return;
                         console.log("Realtime UPDATE received:", updatedBookmark);
@@ -73,20 +88,38 @@ export default function BookmarkList({ userId }: BookmarkListProps) {
                                 b.id === updatedBookmark.id ? updatedBookmark : b
                             )
                         );
-                    } else if (payload.eventType === "DELETE") {
-                        console.log("Realtime DELETE received:", payload.old);
+                    }
+                )
+                .on(
+                    "postgres_changes",
+                    {
+                        event: "DELETE",
+                        schema: "public",
+                        table: "bookmarks",
+                    },
+                    (payload) => {
+                        const oldBookmark = payload.old as Bookmark;
+                        console.log("Realtime DELETE received:", oldBookmark);
                         setBookmarks((prev) =>
-                            prev.filter((b) => b.id !== (payload.old as Bookmark).id)
+                            prev.filter((b) => b.id !== oldBookmark.id)
                         );
                     }
-                }
-            )
-            .subscribe((status) => {
-                console.log("Realtime status:", status);
-            });
+                )
+                .subscribe((status, err) => {
+                    console.log("Realtime status:", status);
+                    if (err) console.error("Realtime error:", err);
+                });
+
+            channelRef.current = channel;
+        };
+
+        setup();
 
         return () => {
-            supabase.removeChannel(channel);
+            isMounted = false;
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+            }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
