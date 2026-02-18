@@ -1,36 +1,138 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smart Bookmark App
 
-## Getting Started
+A real-time bookmark manager built with **Next.js (App Router)**, **Supabase** (Auth, Database, Realtime), and **Tailwind CSS**.
 
-First, run the development server:
+## Features
+
+- **Google OAuth** — Sign up and log in with your Google account
+- **Add bookmarks** — Save a URL with a title
+- **Private bookmarks** — Each user only sees their own bookmarks
+- **Real-time sync** — Bookmarks update live across tabs (no page refresh needed)
+- **Delete bookmarks** — Remove bookmarks you no longer need
+- **Deployed on Vercel** — Available at a live URL
+
+## Tech Stack
+
+| Layer      | Technology                        |
+| ---------- | --------------------------------- |
+| Frontend   | Next.js 16 (App Router)          |
+| Styling    | Tailwind CSS v4                   |
+| Auth       | Supabase Auth (Google OAuth)      |
+| Database   | Supabase PostgreSQL               |
+| Realtime   | Supabase Realtime                 |
+| Deployment | Vercel                            |
+
+## Project Structure
+
+```
+smart-bookmark-app/
+├── app/
+│   ├── auth/callback/route.ts    # OAuth callback handler
+│   ├── components/
+│   │   ├── AddBookmarkForm.tsx    # Form to add bookmarks
+│   │   ├── BookmarkList.tsx       # Real-time bookmark list
+│   │   └── Navbar.tsx             # Top navigation bar
+│   ├── login/page.tsx             # Login page (Google OAuth)
+│   ├── globals.css                # Global styles
+│   ├── layout.tsx                 # Root layout
+│   └── page.tsx                   # Dashboard (main page)
+├── lib/supabase/
+│   ├── client.ts                  # Browser Supabase client
+│   ├── middleware.ts              # Session refresh helper
+│   └── server.ts                  # Server Supabase client
+├── supabase/
+│   └── schema.sql                 # Database schema + RLS policies
+├── middleware.ts                   # Next.js middleware (auth guard)
+└── package.json
+```
+
+## Setup Instructions
+
+### 1. Clone and Install
+
+```bash
+git clone https://github.com/Kavisindhu-N/smart-bookmark-app.git
+cd smart-bookmark-app
+npm install
+```
+
+### 2. Create a Supabase Project
+
+1. Go to [supabase.com](https://supabase.com) and create a new project.
+2. Copy the **Project URL** and **anon public key** from **Settings → API**.
+
+### 3. Configure Environment Variables
+
+Create a `.env.local` file in the project root:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+### 4. Set Up the Database
+
+1. Go to **SQL Editor** in Supabase Dashboard.
+2. Paste and run the contents of `supabase/schema.sql`.
+
+This creates the `bookmarks` table, enables Row Level Security, and sets up real-time.
+
+### 5. Enable Google OAuth
+
+1. In Supabase Dashboard, go to **Authentication → Providers → Google**.
+2. Enable Google and fill in your Google OAuth **Client ID** and **Client Secret**.
+3. Get these from [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+   - Create an OAuth 2.0 Client ID (Web application type)
+   - Add the Supabase callback URL as an authorized redirect URI:  
+     `https://your-project.supabase.co/auth/v1/callback`
+
+### 6. Enable Realtime
+
+1. In Supabase Dashboard, go to **Database → Replication**.
+2. Enable the `bookmarks` table for realtime updates.  
+   _(The schema.sql already runs the `alter publication` command, but verify it's active.)_
+
+### 7. Run Locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploying to Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Push your code to GitHub.
+2. Import the repository in [Vercel](https://vercel.com).
+3. Add the environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) in Vercel's project settings.
+4. Deploy.
 
-## Learn More
+> **Important:** After deploying, add your Vercel URL to the Google OAuth authorized redirect URIs:
+> `https://your-project.supabase.co/auth/v1/callback`
 
-To learn more about Next.js, take a look at the following resources:
+## Problems Encountered & Solutions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 1. Real-time subscription not receiving events
+**Problem:** After adding a bookmark, the other tab didn't update.  
+**Solution:** Enabled the `bookmarks` table in Supabase Replication settings and added `alter publication supabase_realtime add table public.bookmarks;` to the schema SQL.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 2. Row Level Security blocking queries
+**Problem:** After enabling RLS, all bookmark queries returned empty.  
+**Solution:** Created explicit RLS policies for `SELECT`, `INSERT`, and `DELETE` operations scoped to `auth.uid() = user_id`.
 
-## Deploy on Vercel
+### 3. OAuth redirect loop on Vercel
+**Problem:** After Google login, the user was redirected back to the login page.  
+**Solution:** Ensured the `/auth/callback` route correctly exchanges the auth code for a session, and that the Next.js middleware refreshes the session cookie on every request.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 4. URL validation
+**Problem:** Users entered URLs without `https://`, causing broken links.  
+**Solution:** Auto-prefixed URLs with `https://` if no protocol was provided.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 5. Same-tab real-time sync delay
+**Problem:** Newly added bookmarks didn't appear instantly in the same tab, or required manual state management which became complex.  
+**Solution:** Implemented a centralized `BookmarkManager` that uses a single Supabase Realtime subscription for the entire app. Refactored the architecture to be 100% driven by Supabase broadcasts, ensuring consistency across all tabs and devices.
+
+### 6. Redundant Supabase client creation
+**Problem:** The Supabase client was being re-created on every render in components like the Navbar, causing potential memory leaks and extra connection overhead.  
+**Solution:** Wrapped the client creation in `useMemo` to ensure a single instance is shared throughout the component lifecycle.
+
