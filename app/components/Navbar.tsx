@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { User } from "@supabase/supabase-js";
 
 interface NavbarProps {
@@ -9,7 +10,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user }: NavbarProps) {
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
     const router = useRouter();
 
     const handleLogout = async () => {
@@ -19,7 +20,7 @@ export default function Navbar({ user }: NavbarProps) {
 
     return (
         <nav className="backdrop-blur-xl bg-white/[0.04] border-b border-white/[0.06]">
-            <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
                         <svg className="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,7 +31,7 @@ export default function Navbar({ user }: NavbarProps) {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3">
+                    <div className="relative group flex items-center gap-3 cursor-default">
                         {user.user_metadata?.avatar_url && (
                             <img
                                 src={user.user_metadata.avatar_url}
@@ -38,9 +39,12 @@ export default function Navbar({ user }: NavbarProps) {
                                 className="w-8 h-8 rounded-full ring-2 ring-white/10"
                             />
                         )}
-                        <span className="text-sm text-slate-300 hidden sm:block">
-                            {user.user_metadata?.full_name || user.email}
-                        </span>
+                        {user.email && (
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-slate-800 border border-white/10 text-xs text-slate-300 rounded-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-200 shadow-xl z-50">
+                                {user.email}
+                                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 border-l border-t border-white/10 rotate-45" />
+                            </div>
+                        )}
                     </div>
                     <button
                         onClick={handleLogout}
