@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { User } from "@supabase/supabase-js";
 
 interface NavbarProps {
@@ -9,7 +10,7 @@ interface NavbarProps {
 }
 
 export default function Navbar({ user }: NavbarProps) {
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
     const router = useRouter();
 
     const handleLogout = async () => {

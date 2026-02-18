@@ -98,7 +98,8 @@ export default function BookmarkList({ userId }: BookmarkListProps) {
                         table: "bookmarks",
                     },
                     (payload) => {
-                        const oldBookmark = payload.old as Bookmark;
+                        const oldBookmark = payload.old as Partial<Bookmark>;
+                        if (!oldBookmark.id) return; // safety guard
                         console.log("Realtime DELETE received:", oldBookmark);
                         setBookmarks((prev) =>
                             prev.filter((b) => b.id !== oldBookmark.id)
@@ -121,14 +122,22 @@ export default function BookmarkList({ userId }: BookmarkListProps) {
                 supabase.removeChannel(channelRef.current);
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId]);
+    }, [userId, supabase]);
 
     const handleDelete = async (id: string) => {
         setDeletingId(id);
+        // Optimistically remove immediately for snappier UX
+        setBookmarks((prev) => prev.filter((b) => b.id !== id));
         const { error } = await supabase.from("bookmarks").delete().eq("id", id);
         if (error) {
             console.error("Delete error:", error);
+            // Rollback — re-fetch to restore state
+            const { data } = await supabase
+                .from("bookmarks")
+                .select("*")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false });
+            if (data) setBookmarks(data);
         }
         setDeletingId(null);
     };

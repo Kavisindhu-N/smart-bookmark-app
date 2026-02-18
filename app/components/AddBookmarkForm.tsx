@@ -27,6 +27,15 @@ export default function AddBookmarkForm({ userId }: AddBookmarkFormProps) {
                 finalUrl = "https://" + finalUrl;
             }
 
+            // Validate it's actually a proper URL
+            try {
+                new URL(finalUrl);
+            } catch {
+                setError("Please enter a valid URL");
+                setLoading(false);
+                return;
+            }
+
             const { error: insertError } = await supabase
                 .from("bookmarks")
                 .insert({
