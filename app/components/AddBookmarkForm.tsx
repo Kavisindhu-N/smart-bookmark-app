@@ -36,7 +36,6 @@ export default function AddBookmarkForm({ userId, onSuccess }: AddBookmarkFormPr
                 finalUrl = "https://" + finalUrl;
             }
 
-            // Validate it's actually a proper URL
             try {
                 new URL(finalUrl);
             } catch {

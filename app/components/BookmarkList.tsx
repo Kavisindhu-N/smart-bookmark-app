@@ -78,7 +78,6 @@ export default function BookmarkList({ userId, bookmarks, loading, handleDelete 
 
     return (
         <div className="flex flex-col h-full max-h-[calc(100vh-180px)]">
-            {/* Static Header */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 pb-2">
                 <h2 className="text-lg font-semibold text-white flex items-center gap-2 flex-shrink-0">
                     <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +103,6 @@ export default function BookmarkList({ userId, bookmarks, loading, handleDelete 
                 </div>
             </div>
 
-            {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {filteredBookmarks.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pb-4">

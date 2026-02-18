@@ -20,14 +20,12 @@ function LoginContent() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 relative overflow-hidden">
-            {/* Animated background blobs */}
             <div className="absolute top-1/4 -left-20 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" />
             <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl animate-pulse delay-1000" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-3xl" />
 
             <div className="relative z-10 w-full max-w-md px-6">
                 <div className="backdrop-blur-xl bg-white/[0.06] border border-white/[0.08] rounded-3xl p-10 shadow-2xl shadow-black/40">
-                    {/* Logo */}
                     <div className="flex flex-col items-center mb-10">
                         <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-indigo-500/30">
                             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,14 +40,12 @@ function LoginContent() {
                         </p>
                     </div>
 
-                    {/* Error */}
                     {error && (
                         <div className="mb-6 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm text-center">
                             Authentication failed. Please try again.
                         </div>
                     )}
 
-                    {/* Google Sign In */}
                     <button
                         onClick={handleGoogleLogin}
                         className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white hover:bg-gray-50 text-gray-800 font-semibold rounded-2xl transition-all duration-200 hover:shadow-lg hover:shadow-white/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"

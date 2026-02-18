@@ -22,7 +22,6 @@ export default async function DashboardPage() {
         <BookmarkManager userId={user.id} />
       </main>
 
-      {/* Mobile FAB and Modal */}
       <MobileAddBookmark userId={user.id} />
     </div>
   );

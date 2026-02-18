@@ -111,8 +111,6 @@ export default function BookmarkManager({ userId }: BookmarkManagerProps) {
     }, [userId, supabase]);
 
     const handleDelete = async (id: string) => {
-        // Pure Supabase approach: No optimistic update here.
-        // The list will update when the 'DELETE' event is received from Supabase.
         const { error } = await supabase.from("bookmarks").delete().eq("id", id);
         if (error) {
             console.error("Delete error:", error);
@@ -121,7 +119,6 @@ export default function BookmarkManager({ userId }: BookmarkManagerProps) {
 
     return (
         <div className="flex flex-col lg:flex-row gap-12 items-start w-full">
-            {/* Desktop Left Sidebar: Now inside BookmarkManager to share state */}
             <div className="hidden lg:block w-[380px] lg:flex-shrink-0 lg:sticky lg:top-6">
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-white">
@@ -134,7 +131,6 @@ export default function BookmarkManager({ userId }: BookmarkManagerProps) {
                 <AddBookmarkForm userId={userId} />
             </div>
 
-            {/* Main List Column */}
             <div className="w-full lg:flex-1 min-w-0 backdrop-blur-xl bg-white/[0.02] border border-white/[0.06] rounded-3xl p-4 sm:p-8 shadow-2xl">
                 <BookmarkList
                     bookmarks={bookmarks}

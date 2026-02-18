@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-/* Custom styles for Smart Bookmark App */
-
 html {
   scroll-behavior: smooth;
 }
@@ -11,7 +9,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -29,7 +26,6 @@ body {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Animation delay utility */
 .delay-1000 {
   animation-delay: 1s;
 }
