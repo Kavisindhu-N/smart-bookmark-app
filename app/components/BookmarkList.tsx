@@ -51,12 +51,28 @@ export default function BookmarkList({ userId }: BookmarkListProps) {
                     event: "*", // listen to ALL events (INSERT, UPDATE, DELETE)
                     schema: "public",
                     table: "bookmarks",
-                    filter: `user_id=eq.${userId}`,
+                    // NOTE: No server-side filter here — Supabase realtime filters
+                    // don't reliably work with INSERT events + RLS. We filter client-side instead.
                 },
                 (payload) => {
                     if (payload.eventType === "INSERT") {
-                        console.log("Realtime INSERT received:", payload.new);
-                        setBookmarks((prev) => [payload.new as Bookmark, ...prev]);
+                        const newBookmark = payload.new as Bookmark;
+                        // Client-side filter: only process bookmarks for this user
+                        if (newBookmark.user_id !== userId) return;
+                        console.log("Realtime INSERT received:", newBookmark);
+                        setBookmarks((prev) => {
+                            if (prev.some((b) => b.id === newBookmark.id)) return prev;
+                            return [newBookmark, ...prev];
+                        });
+                    } else if (payload.eventType === "UPDATE") {
+                        const updatedBookmark = payload.new as Bookmark;
+                        if (updatedBookmark.user_id !== userId) return;
+                        console.log("Realtime UPDATE received:", updatedBookmark);
+                        setBookmarks((prev) =>
+                            prev.map((b) =>
+                                b.id === updatedBookmark.id ? updatedBookmark : b
+                            )
+                        );
                     } else if (payload.eventType === "DELETE") {
                         console.log("Realtime DELETE received:", payload.old);
                         setBookmarks((prev) =>
