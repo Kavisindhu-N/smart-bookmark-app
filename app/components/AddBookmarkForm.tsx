@@ -3,11 +3,20 @@
 import { createClient } from "@/lib/supabase/client";
 import { useState, useMemo } from "react";
 
-interface AddBookmarkFormProps {
-    userId: string;
+interface Bookmark {
+    id: string;
+    title: string;
+    url: string;
+    created_at: string;
+    user_id: string;
 }
 
-export default function AddBookmarkForm({ userId }: AddBookmarkFormProps) {
+interface AddBookmarkFormProps {
+    userId: string;
+    onSuccess?: () => void;
+}
+
+export default function AddBookmarkForm({ userId, onSuccess }: AddBookmarkFormProps) {
     const supabase = useMemo(() => createClient(), []);
     const [title, setTitle] = useState("");
     const [url, setUrl] = useState("");
@@ -48,6 +57,7 @@ export default function AddBookmarkForm({ userId }: AddBookmarkFormProps) {
 
             setTitle("");
             setUrl("");
+            onSuccess?.();
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to add bookmark";
             setError(message);
