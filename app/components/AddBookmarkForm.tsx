@@ -22,7 +22,6 @@ export default function AddBookmarkForm({ userId }: AddBookmarkFormProps) {
         setError(null);
 
         try {
-            // Basic URL validation — add protocol if missing
             let finalUrl = url.trim();
             if (!/^https?:\/\//i.test(finalUrl)) {
                 finalUrl = "https://" + finalUrl;
