@@ -47,8 +47,11 @@ export async function updateSession(request: NextRequest) {
             console.error("Supabase auth error in middleware:", userError);
         }
 
+        const isAuthCallback = request.nextUrl.searchParams.has("code");
+
         if (
             !user &&
+            !isAuthCallback &&
             !request.nextUrl.pathname.startsWith("/login") &&
             !request.nextUrl.pathname.startsWith("/auth")
         ) {
