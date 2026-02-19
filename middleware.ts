@@ -1,24 +1,30 @@
-import { updateSession } from "@/lib/supabase/middleware";
+import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-    // Skip middleware entirely for OAuth callbacks
-    if (request.nextUrl.searchParams.has("code")) {
-        return;
+    const { pathname, searchParams } = request.nextUrl;
+
+    // Let everything through that's auth-related
+    if (
+        searchParams.has("code") ||
+        searchParams.has("error") ||
+        pathname.startsWith("/auth") ||
+        pathname.startsWith("/login") ||
+        pathname.startsWith("/_next") ||
+        pathname.includes(".")
+    ) {
+        return NextResponse.next();
     }
-    return updateSession(request);
+
+    const hasCookie = request.cookies.getAll().some(c => c.name.startsWith("sb-"));
+
+    if (!hasCookie) {
+        return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    return NextResponse.next();
 }
 
 export const config = {
-    matcher: [
-        /*
-         Run middleware on all routes EXCEPT:
-         - _next (static)
-         - favicon
-         - login
-         - auth routes
-         - OAuth callback with ?code=
-        */
-        "/((?!_next/static|_next/image|favicon.ico|icon.png|login|auth).*)",
-    ],
+    matcher: ["/((?!_next/static|_next/image).*)"],
 };
