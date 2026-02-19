@@ -27,22 +27,27 @@ A real-time bookmark manager built with **Next.js (App Router)**, **Supabase** (
 ```
 smart-bookmark-app/
 ├── app/
-│   ├── auth/callback/route.ts    # OAuth callback handler
-│   ├── components/
-│   │   ├── AddBookmarkForm.tsx    # Form to add bookmarks
-│   │   ├── BookmarkList.tsx       # Real-time bookmark list
-│   │   └── Navbar.tsx             # Top navigation bar
+│   ├── auth/callback/route.ts     # OAuth callback — exchanges code for session
 │   ├── login/page.tsx             # Login page (Google OAuth)
 │   ├── globals.css                # Global styles
-│   ├── layout.tsx                 # Root layout
-│   └── page.tsx                   # Dashboard (main page)
-├── lib/supabase/
-│   ├── client.ts                  # Browser Supabase client
-│   ├── middleware.ts              # Session refresh helper
-│   └── server.ts                  # Server Supabase client
+│   ├── layout.tsx                 # Root layout (font, metadata)
+│   └── page.tsx                   # Dashboard (server component, auth guard)
+├── components/
+│   ├── AddBookmarkForm.tsx        # Form to add bookmarks
+│   ├── BookmarkList.tsx           # Filtered, searchable bookmark list
+│   ├── BookmarkManager.tsx        # State + real-time subscription hub
+│   ├── MobileAddBookmark.tsx      # FAB modal for mobile
+│   └── Navbar.tsx                 # Top navigation with sign out
+├── lib/
+│   ├── types.ts                   # Shared TypeScript interfaces
+│   └── supabase/
+│       ├── client.ts              # Browser Supabase client
+│       ├── middleware.ts          # Session refresh helper (used by proxy.ts)
+│       └── server.ts             # Server-side Supabase client
 ├── supabase/
 │   └── schema.sql                 # Database schema + RLS policies
-├── middleware.ts                   # Next.js middleware (auth guard)
+├── proxy.ts                       # Next.js 16 auth guard (runs on every request)
+├── next.config.ts                 # Turbopack config
 └── package.json
 ```
 
@@ -75,7 +80,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 1. Go to **SQL Editor** in Supabase Dashboard.
 2. Paste and run the contents of `supabase/schema.sql`.
 
-This creates the `bookmarks` table, enables Row Level Security, and sets up real-time.
+This creates the `bookmarks` table, enables Row Level Security, and configures real-time replication.
 
 ### 5. Enable Google OAuth
 
@@ -83,13 +88,13 @@ This creates the `bookmarks` table, enables Row Level Security, and sets up real
 2. Enable Google and fill in your Google OAuth **Client ID** and **Client Secret**.
 3. Get these from [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
    - Create an OAuth 2.0 Client ID (Web application type)
-   - Add the Supabase callback URL as an authorized redirect URI:  
+   - Add the Supabase callback URL as an authorized redirect URI:
      `https://your-project.supabase.co/auth/v1/callback`
 
 ### 6. Enable Realtime
 
 1. In Supabase Dashboard, go to **Database → Replication**.
-2. Enable the `bookmarks` table for realtime updates.  
+2. Enable the `bookmarks` table for realtime updates.
    _(The schema.sql already runs the `alter publication` command, but verify it's active.)_
 
 ### 7. Run Locally
@@ -113,26 +118,33 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Problems Encountered & Solutions
 
 ### 1. Real-time subscription not receiving events
-**Problem:** After adding a bookmark, the other tab didn't update.  
+**Problem:** After adding a bookmark, the other tab didn't update.
 **Solution:** Enabled the `bookmarks` table in Supabase Replication settings and added `alter publication supabase_realtime add table public.bookmarks;` to the schema SQL.
 
 ### 2. Row Level Security blocking queries
-**Problem:** After enabling RLS, all bookmark queries returned empty.  
-**Solution:** Created explicit RLS policies for `SELECT`, `INSERT`, and `DELETE` operations scoped to `auth.uid() = user_id`.
+**Problem:** After enabling RLS, all bookmark queries returned empty.
+**Solution:** Created explicit RLS policies for `SELECT`, `INSERT`, and `DELETE` scoped to `auth.uid() = user_id`, enforcing privacy at the database level regardless of how the API is called.
 
 ### 3. OAuth redirect loop on Vercel
-**Problem:** After Google login, the user was redirected back to the login page.  
-**Solution:** Ensured the `/auth/callback` route correctly exchanges the auth code for a session, and that the Next.js middleware refreshes the session cookie on every request.
+**Problem:** After Google login, the user was redirected back to the login page.
+**Solution:** Ensured the `/auth/callback` route correctly exchanges the auth code for a session cookie, and that `proxy.ts` (Next.js 16's middleware convention) refreshes the session on every request via `updateSession`.
 
 ### 4. URL validation
-**Problem:** Users entered URLs without `https://`, causing broken links.  
-**Solution:** Auto-prefixed URLs with `https://` if no protocol was provided.
+**Problem:** Users entered URLs without `https://`, causing broken links.
+**Solution:** Auto-prefixed URLs with `https://` if no protocol was provided, then validated the result with `new URL()` before inserting.
 
 ### 5. Same-tab real-time sync delay
-**Problem:** Newly added bookmarks didn't appear instantly in the same tab, or required manual state management which became complex.  
-**Solution:** Implemented a centralized `BookmarkManager` that uses a single Supabase Realtime subscription for the entire app. Refactored the architecture to be 100% driven by Supabase broadcasts, ensuring consistency across all tabs and devices.
+**Problem:** Newly added bookmarks didn't appear instantly, and client-side state management became complex.
+**Solution:** Implemented a centralised `BookmarkManager` component that owns a single Supabase Realtime subscription for the entire session. All state is driven exclusively by WebSocket events, ensuring consistency across all tabs.
 
 ### 6. Redundant Supabase client creation
-**Problem:** The Supabase client was being re-created on every render in components like the Navbar, causing potential memory leaks and extra connection overhead.  
-**Solution:** Wrapped the client creation in `useMemo` to ensure a single instance is shared throughout the component lifecycle.
+**Problem:** The Supabase client was re-created on every render, causing extra connection overhead.
+**Solution:** Wrapped client creation in `useMemo` so a single instance is reused throughout the component lifecycle.
 
+### 7. Next.js 16 breaking changes
+**Problem:** Next.js 16 ships with Turbopack by default and renamed `middleware.ts` to `proxy.ts`. The project initially had a stale `proxy.ts` (dead code) and the active auth guard in `middleware.ts`, causing a deprecation warning and the session middleware being skipped entirely.
+**Solution:** Removed the dead file, renamed the active guard to `proxy.ts` with the correct `proxy` function export, and added `turbopack: { root: __dirname }` to `next.config.ts` to fix Turbopack incorrectly detecting a parent directory's `package-lock.json` as the workspace root.
+
+### 8. Webpack module resolution conflict
+**Problem:** A `package.json` in a parent directory (`/home/kavi/`) caused Turbopack to look for `tailwindcss` in the wrong `node_modules`, printing continuous resolution errors.
+**Solution:** Setting `turbopack.root` in `next.config.ts` to the project directory explicitly anchors all module resolution to the correct location.
