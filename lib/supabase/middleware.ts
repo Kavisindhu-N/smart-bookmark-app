@@ -47,7 +47,9 @@ export async function updateSession(request: NextRequest) {
             console.error("Supabase auth error in middleware:", userError);
         }
 
-        const isAuthCallback = request.nextUrl.searchParams.has("code");
+        const isAuthCallback =
+            request.nextUrl.searchParams.has("code") ||
+            request.nextUrl.pathname.startsWith("/auth");
 
         if (
             !user &&
@@ -57,7 +59,7 @@ export async function updateSession(request: NextRequest) {
         ) {
             const url = request.nextUrl.clone();
             url.pathname = "/login";
-            return NextResponse.redirect(url);
+            return NextResponse.redirect(url, { status: 307 });
         }
     } catch (error) {
         console.error("Unexpected error in middleware:", error);

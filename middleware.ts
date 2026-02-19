@@ -9,11 +9,12 @@ export const config = {
     matcher: [
         /*
          Run middleware on all routes EXCEPT:
-         - _next (static files)
+         - _next (static)
          - favicon
-         - auth callback (OAuth return)
-         - login page
+         - login
+         - auth routes
+         - OAuth callback with ?code=
         */
-        "/((?!_next/static|_next/image|favicon.ico|auth|login).*)",
+        "/((?!_next/static|_next/image|favicon.ico|login|auth).*)",
     ],
 };
