@@ -2,6 +2,10 @@ import { updateSession } from "@/lib/supabase/middleware";
 import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+    // Skip middleware entirely for OAuth callbacks
+    if (request.nextUrl.searchParams.has("code")) {
+        return;
+    }
     return updateSession(request);
 }
 
