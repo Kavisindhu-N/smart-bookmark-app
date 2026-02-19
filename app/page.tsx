@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import Navbar from "@/app/components/Navbar";
-import BookmarkManager from "@/app/components/BookmarkManager";
-import MobileAddBookmark from "@/app/components/MobileAddBookmark";
+import Navbar from "@/components/Navbar";
+import BookmarkManager from "@/components/BookmarkManager";
+import MobileAddBookmark from "@/components/MobileAddBookmark";
 
 export default async function DashboardPage() {
   const supabase = await createClient();

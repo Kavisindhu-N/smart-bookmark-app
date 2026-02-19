@@ -1,15 +1,7 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState, useMemo, useRef } from "react";
-
-interface Bookmark {
-    id: string;
-    title: string;
-    url: string;
-    created_at: string;
-    user_id: string;
-}
+import { useState, useMemo } from "react";
+import { Bookmark } from "@/lib/types";
 
 interface BookmarkListProps {
     userId: string;
@@ -18,7 +10,7 @@ interface BookmarkListProps {
     handleDelete: (id: string) => Promise<void>;
 }
 
-export default function BookmarkList({ userId, bookmarks, loading, handleDelete }: BookmarkListProps) {
+export default function BookmarkList({ userId: _userId, bookmarks, loading, handleDelete }: BookmarkListProps) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
 

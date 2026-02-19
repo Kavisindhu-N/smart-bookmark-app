@@ -2,16 +2,9 @@
 
 import { useEffect, useState, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Bookmark } from "@/lib/types";
 import AddBookmarkForm from "./AddBookmarkForm";
 import BookmarkList from "./BookmarkList";
-
-interface Bookmark {
-    id: string;
-    title: string;
-    url: string;
-    created_at: string;
-    user_id: string;
-}
 
 interface BookmarkManagerProps {
     userId: string;
@@ -86,6 +79,7 @@ export default function BookmarkManager({ userId }: BookmarkManagerProps) {
                         event: "DELETE",
                         schema: "public",
                         table: "bookmarks",
+                        filter: `user_id=eq.${userId}`,
                     },
                     (payload) => {
                         const oldBookmark = payload.old as Partial<Bookmark>;
