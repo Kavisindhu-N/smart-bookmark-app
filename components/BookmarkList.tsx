@@ -69,7 +69,7 @@ export default function BookmarkList({ userId: _userId, bookmarks, loading, hand
     }
 
     return (
-        <div className="flex flex-col h-full max-h-[calc(100vh-180px)]">
+        <div className="flex flex-col h-full max-h-[calc(100vh-230px)]">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 pb-2">
                 <h2 className="text-lg font-semibold text-white flex items-center gap-2 flex-shrink-0">
                     <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,37 +97,30 @@ export default function BookmarkList({ userId: _userId, bookmarks, loading, hand
 
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 {filteredBookmarks.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pb-8">
                         {filteredBookmarks.map((bookmark) => (
-                            <div
+                            <a
                                 key={bookmark.id}
-                                className="group backdrop-blur-xl bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 hover:bg-white/[0.06] transition-all duration-200"
+                                href={bookmark.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group backdrop-blur-xl bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 hover:bg-white/[0.06] transition-all duration-200 block cursor-pointer no-underline"
                             >
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1 min-w-0">
-                                        <a
-                                            href={bookmark.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-white font-medium hover:text-indigo-300 transition-colors duration-150 block truncate"
-                                        >
+                                        <span className="text-white font-medium group-hover:text-indigo-300 transition-colors duration-150 block truncate">
                                             {bookmark.title}
-                                        </a>
-                                        <a
-                                            href={bookmark.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-slate-500 hover:text-slate-400 transition-colors duration-150 block truncate mt-1"
-                                        >
+                                        </span>
+                                        <span className="text-sm text-slate-500 group-hover:text-slate-400 transition-colors duration-150 block truncate mt-1">
                                             {bookmark.url}
-                                        </a>
+                                        </span>
                                         <p className="text-xs text-slate-600 mt-2">
                                             {formatDate(bookmark.created_at)}
                                         </p>
                                     </div>
 
                                     <button
-                                        onClick={() => internalHandleDelete(bookmark.id)}
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); internalHandleDelete(bookmark.id); }}
                                         disabled={deletingId === bookmark.id}
                                         className="flex-shrink-0 p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200 cursor-pointer disabled:opacity-50"
                                         title="Delete bookmark"
@@ -141,7 +134,7 @@ export default function BookmarkList({ userId: _userId, bookmarks, loading, hand
                                         )}
                                     </button>
                                 </div>
-                            </div>
+                            </a>
                         ))}
                     </div>
                 ) : (
