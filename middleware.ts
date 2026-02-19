@@ -19,6 +19,6 @@ export const config = {
          - auth routes
          - OAuth callback with ?code=
         */
-        "/((?!_next/static|_next/image|favicon.ico|login|auth).*)",
+        "/((?!_next/static|_next/image|favicon.ico|icon.png|login|auth).*)",
     ],
 };
